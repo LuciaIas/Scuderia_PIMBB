@@ -6,6 +6,7 @@ import time
 import csv
 import random
 from datetime import datetime
+import ctypes
 
 PI = 3.14159265359
 data_size = 2**17
@@ -94,9 +95,15 @@ class Client():
         for k, v in self.bot_profile.items():
             print(f"{k}: {v:.3f}")
         
-        # 2. SETUP LOGGER CSV
+        # 2. SETUP LOGGER CSV IN CARTELLA DEDICATA
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_filename = f"telemetry_{timestamp}.csv"
+        log_dir = "log di gara"
+        
+        # Crea la cartella se non esiste già
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+            
+        self.log_filename = os.path.join(log_dir, f"telemetry_{timestamp}.csv")
         self.log_file = open(self.log_filename, mode='w', newline='')
         self.csv_writer = csv.writer(self.log_file)
         
@@ -310,17 +317,43 @@ def drive_example(c):
     # 1. ANALISI DEL TRACCIATO (Traiettoria centrata fluida)
     look_ahead = max(S['track'][7:12])
     
-    # 2. CALCOLO DELLA VELOCITÀ TARGET (Influenzato da speed_mult)
-    if look_ahead > 140:
-        target_speed = 300.0 * P['speed_mult']
+    # 2. CALCOLO DELLA VELOCITÀ TARGET E STACCATA
+    # Moltiplicatore alzato a 2.3 per fare le curve in modo molto più veloce e aggressivo
+    if look_ahead > 160:
+        target_speed = 330.0 * P['speed_mult']
     else:
-        target_speed = (look_ahead * 2.0) * P['speed_mult']
+        target_speed = (look_ahead * 2.3) * P['speed_mult']
 
-    if abs(S['trackPos']) > 0.85:
-        target_speed = min(target_speed, 130.0)
+    # Nessuna frenata brusca sul cordolo interno: penalità leggera solo sull'estremo limite (0.95)
+    if abs(S['trackPos']) > 0.95:
+        target_speed = min(target_speed, 250.0)
+
+    # === COMPORTAMENTO FUORI PISTA ===
+    # Aumentata la soglia a 1.05 così il bot può usare liberamente tutti i cordoli senza rallentare
+    is_off_track = abs(S['trackPos']) >= 1.05
+    if is_off_track:
+        # Se è fuori pista la priorità è rallentare per non scivolare sull'erba/sabbia
+        target_speed = 40.0 
+        if abs(S['angle']) > 0.7: 
+            target_speed = 20.0 # Se è molto storto, va a passo d'uomo per girarsi in sicurezza
+
+    # === CONTROLLO SBANDATA (SKID) E CONTROSTERZO ===
+    # Soglie leggermente alzate per evitare falsi positivi sui cordoli (che facevano bloccare l'auto)
+    is_skidding = abs(S.get('speedY', 0)) > 5.0 or (abs(S['angle']) > 0.45 and S['speedX'] > 60.0)
 
     # 3. CONTROLLO STERZO (Influenzato da steer_mult)
-    steer_target = (S['angle'] * 0.8 * P['steer_mult']) - (S['trackPos'] * 0.5 * P['steer_mult'])
+    if is_off_track:
+        # Recupero fuoripista: sterza verso il centro stabilizzando l'angolo per non derapare
+        steer_target = (S['angle'] * 0.9) - (S['trackPos'] * 0.4)
+    elif is_skidding:
+        # Recupero sbandata: controsterzo aggressivo e rapido ignorando quasi del tutto il centro pista
+        steer_target = (S['angle'] * 1.5) - (S['trackPos'] * 0.1)
+    else:
+        # In pista: tollerante se non è al centro (correzione cubica invece che lineare)
+        # Così se lo sposti lateralmente manualmente, non "lotterà" per tornare al centro esatto
+        track_correction = (S['trackPos'] ** 3) * 0.8 * P['steer_mult']
+        steer_target = (S['angle'] * 0.8 * P['steer_mult']) - track_correction
+        
     R['steer'] = clip(steer_target, -1.0, 1.0)
 
     # 4. ACCELERATORE E FRENO
@@ -335,15 +368,101 @@ def drive_example(c):
         spin_diff = (S['wheelSpinVel'][2] + S['wheelSpinVel'][3]) - (S['wheelSpinVel'][0] + S['wheelSpinVel'][1])
         if spin_diff > (2.0 * P['grip_mult']):  
             R['accel'] *= 0.6 
+        if is_skidding:
+            R['accel'] *= 0.3 # Taglia nettamente il gas per ridare grip alle ruote posteriori
     else:
         R['accel'] = 0.0
         max_brake = 1.0 - (abs(R['steer']) * 0.4)
-        # Frenata (Influenzata da brake_mult)
-        R['brake'] = clip(-speed_error / (30.0 / P['brake_mult']), 0.0, max_brake)
+        # Frenata molto più brusca e reattiva: basta un eccesso di 15 km/h per applicare il freno massimo
+        R['brake'] = clip(-speed_error / (15.0 / P['brake_mult']), 0.0, max_brake)
 
     if S['speedX'] < 5.0 and target_speed > 10.0:
         R['accel'] = 1.0
         R['brake'] = 0.0
+
+    # === PRECEDENZA ASSOLUTA MA FLUIDA: OVERRIDE MANUALE ===
+    if not hasattr(c, 'smooth_steer'):
+        c.smooth_steer = R['steer']
+        c.smooth_accel = R['accel']
+        c.smooth_brake = R['brake']
+        c.manual_steer_active = False
+        c.manual_pedal_active = False
+
+    manual_w = (ctypes.windll.user32.GetAsyncKeyState(0x57) & 0x8000) != 0
+    manual_s = (ctypes.windll.user32.GetAsyncKeyState(0x53) & 0x8000) != 0
+    manual_a = (ctypes.windll.user32.GetAsyncKeyState(0x41) & 0x8000) != 0
+    manual_d = (ctypes.windll.user32.GetAsyncKeyState(0x44) & 0x8000) != 0
+
+    # === MODELLO FISICO AVANZATO (Ispirato a IBM Granite 4.1:8b per TORCS) ===
+    speed_factor = max(1.0, S['speedX'])
+    
+    # 1. Modello Aerodinamico (Downforce): A 300km/h l'aria schiaccia l'auto, permettendo molta frenata.
+    # A 50 km/h la downforce è assente, e una frenata eccessiva bloccherebbe le ruote.
+    aero_grip = clip(0.4 + (speed_factor / 280.0)**2, 0.4, 1.0)
+    
+    # 2. Sensibilità dello Sterzo Dinamica (Speed-Sensitivity)
+    # La sterzata massima manuale decresce iperbolicamente con la velocità per impedire testacoda ad alte velocità.
+    max_steer_angle = clip(120.0 / speed_factor, 0.15, 1.0)
+    
+    alpha_steer = 0.25   # Reattività aumentata, ma protetta fisicamente da max_steer_angle
+    alpha_pedals = 0.4   # Reattività pedali
+    decay_rate = 0.85    # Ritorno fluido al bot
+
+    # --- Pedali ---
+    if manual_w:
+        c.smooth_accel = c.smooth_accel * (1 - alpha_pedals) + 1.0 * alpha_pedals
+        c.smooth_brake = 0.0
+        R['accel'] = c.smooth_accel
+        R['brake'] = c.smooth_brake
+        c.manual_pedal_active = True
+    elif manual_s:
+        # Frena sfruttando al massimo l'aderenza aerodinamica calcolata (aero_grip) invece di bloccare a 1.0
+        c.smooth_brake = c.smooth_brake * (1 - alpha_pedals) + aero_grip * alpha_pedals
+        c.smooth_accel = 0.0
+        R['brake'] = c.smooth_brake
+        R['accel'] = c.smooth_accel
+        c.manual_pedal_active = True
+    else:
+        if c.manual_pedal_active:
+            # Sfuma dolcemente verso le decisioni del bot
+            c.smooth_accel = c.smooth_accel * decay_rate + R['accel'] * (1 - decay_rate)
+            c.smooth_brake = c.smooth_brake * decay_rate + R['brake'] * (1 - decay_rate)
+            R['accel'] = c.smooth_accel
+            R['brake'] = c.smooth_brake
+            if abs(c.smooth_accel - R['accel']) < 0.05 and abs(c.smooth_brake - R['brake']) < 0.05:
+                c.manual_pedal_active = False
+        else:
+            # Il bot ha controllo totale, tieni aggiornati i valori smooth
+            c.smooth_accel = R['accel']
+            c.smooth_brake = R['brake']
+
+    # --- Sterzo Manuale ---
+    if manual_a:
+        c.smooth_steer = c.smooth_steer * (1 - alpha_steer) + max_steer_angle * alpha_steer
+        R['steer'] = clip(c.smooth_steer, -1.0, 1.0)
+        c.manual_steer_active = True
+    elif manual_d:
+        c.smooth_steer = c.smooth_steer * (1 - alpha_steer) + (-max_steer_angle) * alpha_steer
+        R['steer'] = clip(c.smooth_steer, -1.0, 1.0)
+        c.manual_steer_active = True
+    else:
+        if c.manual_steer_active:
+            # Sfuma dolcemente verso la traiettoria del bot
+            c.smooth_steer = c.smooth_steer * decay_rate + R['steer'] * (1 - decay_rate)
+            R['steer'] = clip(c.smooth_steer, -1.0, 1.0)
+            if abs(c.smooth_steer - R['steer']) < 0.05:
+                c.manual_steer_active = False
+        else:
+            # Il bot ha controllo totale
+            c.smooth_steer = R['steer']
+
+    # === ABS GLOBALE AVANZATO (Combined Slip Physics) ===
+    # Usa una curva quadratica: permette più frenata per piccoli angoli di sterzo, 
+    # ma toglie drasticamente i freni ad angoli di sterzo elevati per preservare l'aderenza laterale.
+    if R['brake'] > 0:
+        steer_penalty = (abs(R['steer']) ** 2) * 0.85
+        max_safe_brake = clip(1.0 - steer_penalty, 0.0, aero_grip if 'aero_grip' in locals() else 1.0)
+        R['brake'] = min(R['brake'], max_safe_brake)
 
     # 5. GESTIONE CAMBIO AUTOMATICO (Basato sulla velocità per evitare salti di marcia)
     speed = S.get('speedX', 0)
