@@ -416,12 +416,20 @@ def drive_example(c):
         R['brake'] = c.smooth_brake
         c.manual_pedal_active = True
     elif manual_s:
-        # Frena sfruttando al massimo l'aderenza aerodinamica calcolata (aero_grip) invece di bloccare a 1.0
-        c.smooth_brake = c.smooth_brake * (1 - alpha_pedals) + aero_grip * alpha_pedals
-        c.smooth_accel = 0.0
-        R['brake'] = c.smooth_brake
-        R['accel'] = c.smooth_accel
-        c.manual_pedal_active = True
+        if S.get('speedX', 0) < 1.0:
+            # Retromarcia da fermo o mentre si va già indietro
+            c.smooth_accel = c.smooth_accel * (1 - alpha_pedals) + 1.0 * alpha_pedals
+            c.smooth_brake = 0.0
+            R['accel'] = c.smooth_accel
+            R['brake'] = c.smooth_brake
+            c.manual_pedal_active = True
+        else:
+            # Frena sfruttando al massimo l'aderenza aerodinamica calcolata (aero_grip) invece di bloccare a 1.0
+            c.smooth_brake = c.smooth_brake * (1 - alpha_pedals) + aero_grip * alpha_pedals
+            c.smooth_accel = 0.0
+            R['brake'] = c.smooth_brake
+            R['accel'] = c.smooth_accel
+            c.manual_pedal_active = True
     else:
         if c.manual_pedal_active:
             # Sfuma dolcemente verso le decisioni del bot
@@ -467,7 +475,9 @@ def drive_example(c):
     # 5. GESTIONE CAMBIO AUTOMATICO (Basato sulla velocità per evitare salti di marcia)
     speed = S.get('speedX', 0)
 
-    if speed < 50:
+    if manual_s and speed < 1.0:
+        R['gear'] = -1
+    elif speed < 50:
         R['gear'] = 1
     elif speed < 95:
         R['gear'] = 2
