@@ -50,8 +50,8 @@ AXIS_RT    = 5   # Grilletto destro    (riposo = -1.0, premuto = +1.0)
 # Indici bottoni Xbox
 BTN_A     = 0    # Scala marcia  (gear -1)
 BTN_B     = 1    # Ingrana marcia (gear +1)
-BTN_PAUSE = 7    # Toggle pausa / riprendi
-BTN_QUIT  = 6    # Back  → salva log e termina
+BTN_SELECT= 6    # Back  → Restart gara
+BTN_START = 7    # Start → Toggle pausa / riprendi
 
 # ── Calibrazione input ───────────────────────────────────────────────────────
 # Zona morta stick sinistro: movimenti più piccoli di questo vengono ignorati
@@ -121,8 +121,8 @@ class XboxController:
         # Stato bottoni per rilevare il fronte di salita
         self._prev_btn_a     = False
         self._prev_btn_b     = False
-        self._prev_btn_pause = False
-        self._prev_btn_quit  = False
+        self._prev_btn_pause   = False
+        self._prev_btn_restart = False
 
         # Stato pausa
         self.paused = False
@@ -205,7 +205,7 @@ class XboxController:
             self.current_gear = max(-1, self.current_gear - 1)
 
         # ── Tasto Start: toggle pausa ─────────────────────────────────────
-        btn_pause = self._button(BTN_PAUSE)
+        btn_pause = self._button(BTN_START)
         if btn_pause and not self._prev_btn_pause:
             self.paused = not self.paused
             if not self.paused:
@@ -213,18 +213,19 @@ class XboxController:
                 self._prev_steer = 0.0
         self._prev_btn_pause = btn_pause
 
-        # ── Tasto Back: esci ──────────────────────────────────────────────────
-        btn_quit = self._button(BTN_QUIT)
-        quit_requested = quit_requested or (btn_quit and not self._prev_btn_quit)
-        self._prev_btn_quit = btn_quit
+        # ── Tasto Select: restart ─────────────────────────────────────────────
+        btn_restart = self._button(BTN_SELECT)
+        restart_requested = btn_restart and not self._prev_btn_restart
+        self._prev_btn_restart = btn_restart
 
         return {
             "steer":  steer,
             "accel":  accel,
             "brake":  brake,
             "gear":   self.current_gear,
-            "paused": self.paused,
-            "quit":   quit_requested,
+            "paused":  self.paused,
+            "restart": restart_requested,
+            "quit":    quit_requested,
         }
 
     def close(self):
@@ -412,11 +413,10 @@ class SessionLogger:
         self.user           = user
         # Estensione .jsonl per chiarire il formato (una riga = un record)
         self.filepath       = os.path.join(LOG_DIR, f"session_{ts}.jsonl")
-        # buffering=1 → line-buffering: flush automatico su ogni '\n'
-        self._file          = open(self.filepath, "a", encoding="utf-8", buffering=1)
+        self.records        = []
         self._step_count    = 0
         self.race_completed = False   # True se TORCS ha segnalato shutdown/restart
-        print(f"[LOG] Sessione avviata \u2192 {self.filepath}")
+        print(f"[LOG] Sessione avviata \u2192 i log saranno salvati in: {self.filepath} solo a fine gara")
 
     def log_step(self, server_state: dict, action: dict):
         """Scrive una riga JSON per questo step. Ritorna immediatamente."""
@@ -438,9 +438,14 @@ class SessionLogger:
                 "gear":  action.get("gear",  1),
             },
         }
-        # Compact JSON + newline → il line-buffering fa il flush automaticamente
-        self._file.write(json.dumps(record, separators=(',', ':')) + '\n')
+        # Aggiunge in memoria
+        self.records.append(json.dumps(record, separators=(',', ':')) + '\n')
         self._step_count += 1
+
+    def reset(self):
+        """Resetta i log in caso di riavvio gara."""
+        self.records = []
+        self._step_count = 0
 
     @staticmethod
     def _next_race_number() -> int:
@@ -466,13 +471,14 @@ class SessionLogger:
         return new_path
 
     def save_and_close(self):
-        """Chiude il file; se la gara è stata completata lo rinomina in log_garaN."""
-        self._file.close()
+        """Salva il file solo se la gara è stata completata."""
         if self.race_completed:
+            with open(self.filepath, "w", encoding="utf-8") as f:
+                f.writelines(self.records)
             new_path = self.rename_as_race_log()
-            print(f"[LOG] Gara completata! {self._step_count} step \u2192 {new_path}")
+            print(f"[LOG] Gara completata! {self._step_count} step salvati \u2192 {new_path}")
         else:
-            print(f"[LOG] Sessione terminata. {self._step_count} step \u2192 {self.filepath}")
+            print(f"[LOG] Sessione terminata senza completare la gara. Nessun log salvato.")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -509,7 +515,7 @@ def run_manual_session(host: str = "localhost",
     print(f"\n[TORCS] Connessione a {host}:{port} ...")
     C = Client(H=host, p=port, t=track)
     print("[TORCS] Connesso!\n")
-    print("Controlli: Stick=steer  RT=accel  LT=brake  B=gear+  A=gear-  Start=esci")
+    print("Controlli: Stick=steer  RT=accel  LT=brake  B=gear+  A=gear-  Select=restart  Start=pausa")
     print()
 
     step    = 0
@@ -519,7 +525,7 @@ def run_manual_session(host: str = "localhost",
     # Un giro è completato quando distFromStart torna vicino a 0
     # (scende di oltre LAP_WRAP_THRESHOLD rispetto al valore dello step precedente).
     LAP_WRAP_THRESHOLD = 200.0    # metri — soglia sicura per qualsiasi pista
-    LAPS_TO_COMPLETE   = 3        # giri necessari per una gara valida
+    LAPS_TO_COMPLETE   = 1        # giri necessari per una gara valida
     _prev_dist         = None     # distFromStart al passo precedente
     _laps_completed    = 0        # giri completati finora
 
@@ -569,6 +575,16 @@ def run_manual_session(host: str = "localhost",
             if ctrl["quit"] or win_close:
                 print("\n[INFO] Uscita richiesta.")
                 running = False
+
+            if ctrl["restart"]:
+                print("\n[INFO] Riavvio gara richiesto!")
+                R = C.R.d
+                R["meta"] = 1
+                C.respond_to_server()
+                logger.reset()
+                _laps_completed = 0
+                _prev_dist = None
+                continue
 
             paused = ctrl["paused"]
 
