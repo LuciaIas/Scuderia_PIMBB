@@ -5,7 +5,7 @@ Addestramento supervisionato (Behavioural Cloning) per TORCS.
 Versione Ottimizzata: Rete snella, AMP, Esportazione End-to-End JIT.
 """
 
-import os, sys, json, glob, getopt, random, csv, time, pickle
+import os, sys, json, glob, getopt, random, time, pickle
 import numpy as np
 
 try:
@@ -214,6 +214,15 @@ def train(X_pca, y, input_dim, model_dir, epochs, batch_size, lr, val_split, see
         va_loss = sum(criterion(model(xb.to(device)), yb.to(device)).item() * len(xb) for xb, yb in val_loader) / n_val
         scheduler.step()
         print(f"Ep {epoch:>3d} | Tr Loss: {tr_loss:.6f} | Val Loss: {va_loss:.6f} | Time: {time.time()-t0:.1f}s")
+
+        # Salva le metriche nel log CSV
+        log_path = os.path.join(model_dir, "training_log.csv")
+        if epoch == 1:
+            with open(log_path, "w", encoding="utf-8") as f:
+                f.write("epoch,train_loss,val_loss,lr\n")
+        current_lr = optimizer.param_groups[0]['lr']
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"{epoch},{tr_loss:.6f},{va_loss:.6f},{current_lr:.9f}\n")
 
     return model.cpu().eval()
 

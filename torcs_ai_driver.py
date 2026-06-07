@@ -9,7 +9,7 @@ import os, sys, getopt, time
 import numpy as np
 
 # Import dal progetto
-from mioTraining import Client, clip
+from snakeoil3_gym import Client, clip
 
 try:
     import torch
