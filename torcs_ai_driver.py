@@ -8,6 +8,8 @@ Gestione 100% IA: Sterzo, Acceleratore, Freno e MARCE!
 import os, sys, getopt, time
 import numpy as np
 
+sys.dont_write_bytecode = True
+
 # Import dal progetto
 from snakeoil3_gym import Client, clip
 
