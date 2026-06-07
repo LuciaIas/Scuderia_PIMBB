@@ -52,11 +52,8 @@ def sensors_to_tensor(S: dict) -> torch.Tensor:
 # ─────────────────────────────────────────────────────────────────────────────
 
 class AIDriver:
-    STEER_ALPHA = 0.35  # Filtro per addolcire i movimenti dello sterzo
-
     def __init__(self, net):
         self.net = net
-        self._prev_steer = 0.0
         self.n_total = self.n_ai = 0
 
     def act(self, C) -> dict:
@@ -74,9 +71,8 @@ class AIDriver:
         brake     = float(out[2])
         raw_gear  = float(out[3])
 
-        # Lo sterzo usa un filtro per fluidità
-        steer = clip((self._prev_steer * (1.0 - self.STEER_ALPHA) + raw_steer * self.STEER_ALPHA), -1.0, 1.0)
-        self._prev_steer = steer
+        # Sterzo diretto dall'output del modello IA senza filtro
+        steer = clip(raw_steer, -1.0, 1.0)
 
         # Calcoliamo la marcia: in addestramento era divisa per 6
         pred_gear = int(round(raw_gear * 6.0))
