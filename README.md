@@ -8,14 +8,16 @@
   AI Driver basato su Machine Learning per TORCS
 </p>
 
-
+<br>
 
 ## **Descrizione**
 
 Progetto sviluppato nell’ambito della **IBM AI Racing League** per la realizzazione di un agente di **guida autonoma** nel simulatore **TORCS (The Open Racing Car Simulator)**.
 
 Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, progettato per controllare un veicolo minimizzando il tempo sul giro e massimizzando la stabilità.
+
 <br>
+
 ## **Team – Scuderia PIMBB**
 
 * Bello Daniel
