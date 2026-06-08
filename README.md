@@ -26,7 +26,7 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 
 
 
-### Obiettivo
+### **Obiettivo Del Progetto**
 Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 
 **Approccio Adottato:** 
