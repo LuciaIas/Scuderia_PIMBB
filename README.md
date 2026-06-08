@@ -8,7 +8,7 @@
   AI Driver basato su Machine Learning per TORCS
 </p>
 
----
+
 
 ## **Descrizione**
 
@@ -24,7 +24,7 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 * Palermo Euplio
 * Maffettone Ester
 
----
+
 
 ### Obiettivo
 Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
@@ -36,7 +36,7 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 
 
 
----
+
 
 ## **Struttura del Repository**
 
@@ -53,7 +53,7 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 └── README.md
 ```
 
----
+
 
 ## **Strumenti Utilizzati**
 
@@ -72,7 +72,7 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 
 * **AI Support :** IBM Granite *(copilota per sviluppo e debugging)*
 
----
+
 
 ## **Pipeline di Machine Learning**
 
@@ -84,13 +84,13 @@ Il modello segue una pipeline in **3 fasi principali**:
 
 **3. Inferenza:** Ottimizzazione tramite *JIT*, Output in tempo reale per il simulatore
 
----
+
 
 ## **Modello Neurale**
 
 **Architettura:** Feed-Forward Deep Network (TorcsDriverNet)
 
----
+
 
 
 
@@ -101,10 +101,10 @@ Il modello segue una pipeline in **3 fasi principali**:
 * IBM SkillsBuild
 * IBM AI Racing League
 
----
+
 
 ## **Ringraziamenti**
 
 Un sentito ringraziamento a **IBM Granite** per il contributo determinante nel supportare la progettazione, la generazione e l’ottimizzazione della logica algoritmica nelle fasi iniziali del progetto.
 
----
+
