@@ -61,10 +61,10 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 
 * **Librerie principali**
 
-   `numpy` – calcolo numerico
-   `pandas` – gestione dati
-   `socket` – comunicazione UDP
-   `pygame` – input controller
+   `numpy` – calcolo numerico\
+   `pandas` – gestione dati\
+   `socket` – comunicazione UDP\
+   `pygame` – input controller\
    `json / pickle` – persistenza dati
 
 * **AI Support :** IBM Granite *(copilota per sviluppo e debugging)*
