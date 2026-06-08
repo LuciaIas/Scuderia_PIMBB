@@ -78,7 +78,7 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 
 ## **Pipeline di Machine Learning**
 
-Il modello segue una pipeline in **3 fasi principali**:
+Il modello segue una pipeline in **3 fasi principali**:\
 **1. Preprocessing**  
   Clipping dei valori (`np.clip`), Normalizzazione statistica *(StandardScaler)* e Riduzione dimensionale *(PCA)*
 **2. Training:** 
