@@ -37,7 +37,9 @@ ax1.scatter(df_tastiera['speedX'], df_tastiera['steer'], color='red', label='Tas
 ax1.set_title('Scatter Plot: Velocità vs Sterzo')
 ax1.set_xlabel('Velocità (speedX)')
 ax1.set_ylabel('Angolo di Sterzo')
-ax1.legend(loc='upper right')
+leg = ax1.legend(loc='upper right')
+for lh in leg.legend_handles:
+    lh.set_alpha(1.0) # Forza l'opacità della legenda al 100%
 ax1.grid(True, linestyle='--')
 
 # GRAFICO 2: Istogramma (Distribuzione dell'input)
