@@ -61,11 +61,11 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 
 * **Librerie principali**
 
-* `numpy` – calcolo numerico
-* `pandas` – gestione dati
-* `socket` – comunicazione UDP
-* `pygame` – input controller
-* `json / pickle` – persistenza dati
+   `numpy` – calcolo numerico
+   `pandas` – gestione dati
+   `socket` – comunicazione UDP
+   `pygame` – input controller
+   `json / pickle` – persistenza dati
 
 * **AI Support :** IBM Granite *(copilota per sviluppo e debugging)*
 
@@ -77,9 +77,9 @@ Il modello segue una pipeline in **3 fasi principali**:
 
 **1. Preprocessing:**  Clipping dei valori (`np.clip`), Normalizzazione statistica *(StandardScaler)* e Riduzione dimensionale *(PCA)*
 
-**2. Training:** Paradigma: **Behavioural Cloning**, Task: regressione continua *(steer, accel, brake, gear)*
+**2. Training:** Paradigma *Behavioural Cloning*, Task regressione continua *(steer, accel, brake, gear)*
 
-**3. Inferenza:** Ottimizzazione tramite **JIT**, Output in tempo reale per il simulatore
+**3. Inferenza:** Ottimizzazione tramite *JIT*, Output in tempo reale per il simulatore
 
 ---
 
