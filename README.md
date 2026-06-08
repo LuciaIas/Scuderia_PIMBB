@@ -16,6 +16,16 @@ Progetto sviluppato nell’ambito della **IBM AI Racing League** per la realizza
 
 Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, progettato per controllare un veicolo minimizzando il tempo sul giro e massimizzando la stabilità.
 
+## **Team – Scuderia PIMBB**
+
+* Bello Daniel
+* Bentivenga Antonio
+* Iasevoli Lucia
+* Palermo Euplio
+* Maffettone Ester
+
+---
+
 ### Approccio adottato
 
 * Imitation Learning *(Behavioural Cloning)*
@@ -45,11 +55,11 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 
 ## **Strumenti Utilizzati**
 
-### Simulazione : TORCS 1.3.x
+* **Ambiente di Simulazione :** TORCS 1.3.4
 
-### Linguaggio : Python 3.11
+* **Linguaggio :** Python 3.11.15
 
-### Librerie principali
+* **Librerie principali**
 
 * `numpy` – calcolo numerico
 * `pandas` – gestione dati
@@ -57,7 +67,7 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 * `pygame` – input controller
 * `json / pickle` – persistenza dati
 
-### AI Support : IBM Granite *(copilota per sviluppo e debugging)*
+* **AI Support :** IBM Granite *(copilota per sviluppo e debugging)*
 
 ---
 
@@ -65,40 +75,21 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 
 Il modello segue una pipeline in **3 fasi principali**:
 
-### Preprocessing
+**1. Preprocessing:**  Clipping dei valori (`np.clip`), Normalizzazione statistica *(StandardScaler)* e Riduzione dimensionale *(PCA)*
 
-* Clipping dei valori (`np.clip`)
-* Normalizzazione statistica *(StandardScaler)*
-* Riduzione dimensionale *(PCA)*
+**2. Training:** Paradigma: **Behavioural Cloning**, Task: regressione continua *(steer, accel, brake, gear)*
 
-### Training
-
-* Paradigma: **Behavioural Cloning**
-* Task: regressione continua *(steer, accel, brake, gear)*
-
-### Inferenza
-
-* Ottimizzazione tramite **JIT**
-* Output in tempo reale per il simulatore
+**3. Inferenza:** Ottimizzazione tramite **JIT**, Output in tempo reale per il simulatore
 
 ---
 
 ## **Modello Neurale**
 
-Architettura:
-**Feed-Forward Deep Network (TorcsDriverNet)**
+**Architettura:** Feed-Forward Deep Network (TorcsDriverNet)
 
 ---
 
-## **Team – Scuderia PIMBB**
 
-* Bello Daniel
-* Bentivenga Antonio
-* Iasevoli Lucia
-* Palermo Euplio
-* Maffettone Ester
-
----
 
 ## **Riferimenti**
 
