@@ -1,9 +1,9 @@
 <p align="center">
   <img src="https://github.com/user-attachments/assets/c3843492-944e-4e54-aada-c09d36484daf" width="180">
 </p>
-
-# 🏎️ AI TORCS Driver – Scuderia PIMBB
-
+<p align="center">
+# AI TORCS Driver – Scuderia PIMBB
+</p>
 <p align="center">
   AI Driver basato su Machine Learning per TORCS
 </p>
