@@ -80,7 +80,7 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 
 Il modello segue una pipeline in **3 fasi principali**:\
 **1. Preprocessing**  
-  Clipping dei valori (`np.clip`), Normalizzazione statistica *(StandardScaler)* e Riduzione dimensionale *(PCA)*
+  Clipping dei valori (`np.clip`), Normalizzazione statistica *(StandardScaler)* e Riduzione dimensionale *(PCA)*\
 **2. Training:** 
   Paradigma *Behavioural Cloning*, Task regressione continua *(steer, accel, brake, gear)*
 **3. Inferenza**
