@@ -135,7 +135,7 @@ def load_logs(logs_dir: str, min_speed: float = 5.0):
 def fit_scaler_pca(X_raw: np.ndarray, pca_components, model_dir: str):
 
     # Applico Standardizzazione e PCA per ridurre la dimensionalità degli input.
-    # Questo aiuta la rete neurale a concentrarsi solo sulle feature più importanti evitando rumore.
+    # Questo riduce il rumore.
     print("\n[PRE-PROC] Fitting StandardScaler ...")
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X_raw)
@@ -158,7 +158,7 @@ def fit_scaler_pca(X_raw: np.ndarray, pca_components, model_dir: str):
 
 class TorcsDataset(Dataset):
     
-    # Wrapper per il dataset PyTorch. Consente a DataLoader di iterare sui batch.
+    # Wrapper per il dataset PyTorch. Consente a DataLoader di iterare sui batch (Raggruppamenti di dati).
     def __init__(self, X, y):
         self.X, self.y = torch.from_numpy(X), torch.from_numpy(y)
         
@@ -177,10 +177,18 @@ class TorcsDriverNet(nn.Module):
     def __init__(self, input_dim: int, hidden: int = 128, dropout: float = 0.1):
         super().__init__()
         
-        # nn.Sequential: Esegue i layer in cascata.
-        # nn.Linear: Layer completamente connesso (moltiplicazione matriciale y = xA^T + b).
+        # nn.Sequential: Esegue i layer tra parentesi in cascata (Collegamenti fra i neuroni).
+
+        # nn.Linear: Layer completamente connesso (y = xA^T + b: x = dati in ingresso, A = pesi, b = bias) e serve
+        # per mappare le feature in uno spazio a dimensionalità maggiore, in questo caso hidden = 128.
+        # Avremo quindi 128 neuroni di ingresso collegati a 128 neuroni d'uscita mediante 128 * 128 collegamenti pesati.
+
         # nn.BatchNorm1d: Normalizza gli output del layer precedente per velocizzare e stabilizzare il training.
+
         # nn.ReLU: Funzione di attivazione che azzera i valori negativi per introdurre non linearità.
+        # La non linearità permette alla rete di imparare relazioni complesse tra i dati, specializzando
+        # i singoli neuroni a riconoscere pattern specifici (es. curve strette vs rettilinei).
+
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, hidden), 
             nn.BatchNorm1d(hidden), 
@@ -201,7 +209,7 @@ class TorcsDriverNet(nn.Module):
         self.res_act = nn.ReLU(inplace=True)
         
         # Bottleneck comprime la rappresentazione
-        # nn.Dropout: azzera casualmente una percentuale di neuroni per evitare l'overfitting.
+        # nn.Dropout: azzera casualmente una percentuale di neuroni per evitare l'overfitting (Di imparare le cose a memoria).
         self.bottleneck = nn.Sequential(
             nn.Dropout(dropout), 
             nn.Linear(hidden, 64), 
@@ -211,6 +219,7 @@ class TorcsDriverNet(nn.Module):
         
         # Teste indipendenti per ogni comando fisico
         # Tanh mappa i valori tra [-1, 1] (perfetto per lo sterzo e marce -1..6 normalizzate).
+        # In questo caso nn.Linear (64,1) comprime i valori in uno solo per fornire l'output
         self.head_steer = nn.Sequential(nn.Linear(64, 1), nn.Tanh())
         self.head_gear  = nn.Sequential(nn.Linear(64, 1), nn.Tanh())
         
@@ -227,13 +236,16 @@ class TorcsDriverNet(nn.Module):
             
         h = self.bottleneck(h)
         
-        # torch.cat unisce i tensori di output in un unico array
+        # torch.cat unisce i tensori (Evoluzione di matrice) di output in un unico array
         return torch.cat([self.head_steer(h), self.head_accel(h), self.head_brake(h), self.head_gear(h)], dim=1)
 
 class TorcsEndToEndNet(nn.Module):
 
     # Modello Unificato JIT (Pre-processamento + Rete Neurale).
     # Incapsula scalatura e PCA direttamente nel grafo computazionale del modello.
+
+    # Vengono salvati: la media e la scala (deviazione standard) dello scaler,
+    #  e la media e i componenti (le direzioni principali) della PCA.
     def __init__(self, net, scaler, pca):
         super().__init__()
         self.net = net
@@ -247,11 +259,13 @@ class TorcsEndToEndNet(nn.Module):
 
     def forward(self, x_raw):
 
-        # Flusso completo di elaborazione
+        # --- Flusso completo di elaborazione ---
+
         # torch.clamp forza i valori nei limiti scelti
         x = torch.clamp(x_raw / self.raw_scale, -3.0, 3.0)
         
-        # Normalizzazione come farebbe lo StandardScaler
+        # Normalizzazione come farebbe lo StandardScaler di scikit-learn
+        # sottrae la media e divide per la deviazione standard
         x = (x - self.scaler_mean) / self.scaler_scale
         
         # Proiezione PCA tramite moltiplicazione di matrici (torch.matmul)
@@ -261,11 +275,14 @@ class TorcsEndToEndNet(nn.Module):
 
 class WeightedMSELoss(nn.Module):
 
-    # Funzione di Loss (Errore) personalizzata (Mean Squared Error).
+    # Funzione di Loss (Errore che il modello cerca di minimizzare) personalizzata (Mean Squared Error).
     # Pondero diversamente l'errore sui vari comandi, dando priorità allo sterzo e al freno.
+
+    # pesi relativi a: ( sterzo, acceleratore, freno, marcia ) in input
     WEIGHTS = torch.tensor([2.0, 1.0, 1.5, 0.5])
     
     def forward(self, pred, target):
+        # calcola l'errore quadratico medio pesato tra le previsioni (pred) e i valori reali (target)
         return ((pred - target) ** 2 * self.WEIGHTS.to(pred.device)).mean()
 
 
@@ -283,7 +300,7 @@ def train(X_pca, y, input_dim, model_dir, epochs, batch_size, lr, val_split, see
     # torch.device seleziona la GPU se disponibile (CUDA), altrimenti usa il processore (CPU)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # Creazione dataset e divisione train/val
+    # Creazione dataset e divisione train/pred
     dataset = TorcsDataset(X_pca, y)
     n_val = int(len(dataset) * val_split)
     train_ds, val_ds = random_split(dataset, [len(dataset) - n_val, n_val], generator=torch.Generator().manual_seed(seed))
@@ -309,6 +326,9 @@ def train(X_pca, y, input_dim, model_dir, epochs, batch_size, lr, val_split, see
 
     print(f"\n[TRAIN] Device: {device} | Parametri: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
     
+
+    # Ciclo basato sulle epoche
+
     for epoch in range(1, epochs + 1):
         t0, tr_loss = time.time(), 0.0
         
@@ -352,15 +372,7 @@ def train(X_pca, y, input_dim, model_dir, epochs, batch_size, lr, val_split, see
         
         print(f"Ep {epoch:>3d} | Tr Loss: {tr_loss:.6f} | Val Loss: {va_loss:.6f} | Time: {time.time()-t0:.1f}s")
 
-        # Salvo le metriche nel file CSV
-        log_path = os.path.join(model_dir, "training_log.csv")
-        if epoch == 1:
-            with open(log_path, "w", encoding="utf-8") as f:
-                f.write("epoch,train_loss,val_loss,lr\n")
-                
-        current_lr = optimizer.param_groups[0]['lr']
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(f"{epoch},{tr_loss:.6f},{va_loss:.6f},{current_lr:.9f}\n")
+
 
     return model.cpu().eval()
 
@@ -393,7 +405,7 @@ if __name__ == "__main__":
             pca_components = int(v) if v >= 1.0 else v
         elif opt == "--seed": seed = int(val)
 
-    # Calcolo il percorso esatto della cartella basato sullo script
+    # Calcolo il percorso esatto della cartella basato sullo script (Evita errori di file not found)
     base = os.path.dirname(os.path.abspath(__file__))
     if not os.path.isabs(logs_dir): logs_dir = os.path.join(base, logs_dir)
     if not os.path.isabs(model_dir): model_dir = os.path.join(base, model_dir)
