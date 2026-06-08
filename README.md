@@ -15,7 +15,7 @@
 Progetto sviluppato nell’ambito della **IBM AI Racing League** per la realizzazione di un agente di **guida autonoma** nel simulatore **TORCS (The Open Racing Car Simulator)**.
 
 Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, progettato per controllare un veicolo minimizzando il tempo sul giro e massimizzando la stabilità.
-
+<br>
 ## **Team – Scuderia PIMBB**
 
 * Bello Daniel
@@ -24,7 +24,7 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 * Palermo Euplio
 * Maffettone Ester
 
-
+<br>
 
 ## **Obiettivo Del Progetto**
 Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
@@ -36,7 +36,7 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 
 
 
-
+<br>
 
 ## **Struttura del Repository**
 
@@ -53,7 +53,7 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 └── README.md
 ```
 
-
+<br>
 
 ## **Strumenti Utilizzati**
 
@@ -72,7 +72,7 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 
 * **AI Support :** IBM Granite *(copilota per sviluppo e debugging)*
 
-
+<br>
 
 ## **Pipeline di Machine Learning**
 
@@ -85,6 +85,7 @@ Il modello segue una pipeline in **3 fasi principali**:
 **3. Inferenza:** Ottimizzazione tramite *JIT*, Output in tempo reale per il simulatore
 
 
+<br>
 
 ## **Modello Neurale**
 
@@ -92,7 +93,7 @@ Il modello segue una pipeline in **3 fasi principali**:
 
 
 
-
+<br>
 
 ## **Riferimenti**
 
@@ -101,7 +102,7 @@ Il modello segue una pipeline in **3 fasi principali**:
 * IBM SkillsBuild
 * IBM AI Racing League
 
-
+<br>
 
 ## **Ringraziamenti**
 
