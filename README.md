@@ -26,13 +26,15 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 
 ---
 
-### Approccio adottato
+### Obiettivo
+Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 
+**Approccio Adottato:** 
 * Imitation Learning *(Behavioural Cloning)*
 * Analisi della telemetria
 * Pipeline di Machine Learning supervisionato
 
-**Obiettivo:** ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
+
 
 ---
 
@@ -66,7 +68,7 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
    `socket` – Comunicazione UDP\
    `pygame / ctypes` – Input controller e tastiera\
    `json / pickle / glob` – Persistenza dati\
-   `os, sys, getopt, time, datetime, random` – Sistema e Utility\
+   `os / sys / getopt / time / datetime / random` – Sistema e Utility
 
 * **AI Support :** IBM Granite *(copilota per sviluppo e debugging)*
 
