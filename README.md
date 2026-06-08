@@ -1,4 +1,5 @@
 <img width="500" height="500" alt="logoboon" src="https://github.com/user-attachments/assets/c3843492-944e-4e54-aada-c09d36484daf" />
+---
 # 🏎️ **AI TORCS Driver – Scuderia PIMBB**
 
 ---
@@ -38,13 +39,9 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 
 ## ⚙️ **Strumenti Utilizzati**
 
-### 🧪 Simulazione
+### 🧪 Simulazione : TORCS 1.3.x
 
-* TORCS 1.3.x
-
-### 💻 Linguaggio
-
-* Python 3.11
+### 💻 Linguaggio : Python 3.11
 
 ### 📚 Librerie principali
 
@@ -54,9 +51,7 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 * `pygame` – input controller
 * `json / pickle` – persistenza dati
 
-### 🤖 AI Support
-
-* IBM Granite *(copilota per sviluppo e debugging)*
+### 🤖 AI Support : IBM Granite *(copilota per sviluppo e debugging)*
 
 ---
 
