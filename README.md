@@ -1,6 +1,7 @@
-<img width="500" height="500" alt="logoboon" src="https://github.com/user-attachments/assets/c3843492-944e-4e54-aada-c09d36484daf" />
+<p aligh="center"> <img width="200" height="200" alt="logoboon" src="https://github.com/user-attachments/assets/c3843492-944e-4e54-aada-c09d36484daf" /> </p>
 ---
-# 🏎️ **AI TORCS Driver – Scuderia PIMBB**
+
+<h1 align="center"> # 🏎️ **AI TORCS Driver – Scuderia PIMBB** </h1>
 
 ---
 
