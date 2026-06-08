@@ -2,17 +2,16 @@ import os
 import sys
 import getopt
 
-# Prevent creation of __pycache__
+# Evita la creazione di file compilati __pycache__
 sys.dont_write_bytecode = True
 
-# Aggiunge la root del progetto a sys.path per consentire import assoluti del package Controller
+# Aggiungo la root del progetto a sys.path per importare il package Controller
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from Controller.manual_session import run_manual_session
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Entry point CLI Options
-# ──────────────────────────────────────────────────────────────────────────────
+
+#  ----------- ENTRY POINT (OPZIONI CLI) -----------
 
 _HELP = """
 Uso: python controller.py [opzioni]
@@ -34,6 +33,7 @@ def main():
     max_steps = 100_000
 
     try:
+        # Prendo in input i parametri passati da riga di comando
         opts, _ = getopt.getopt(
             sys.argv[1:],
             "H:p:t:u:m:h",
@@ -43,6 +43,7 @@ def main():
         print(f"Errore opzioni: {e}\n{_HELP}")
         sys.exit(1)
 
+    # Scorro le opzioni per configurare la sessione
     for opt, val in opts:
         if opt in ("-H", "--host"):
             host = val
@@ -58,6 +59,7 @@ def main():
             print(_HELP)
             sys.exit(0)
 
+    # Avvio la sessione di guida con le impostazioni scelte
     run_manual_session(host=host, port=port, track=track, user=user, max_steps=max_steps)
 
 if __name__ == "__main__":

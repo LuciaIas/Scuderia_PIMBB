@@ -9,83 +9,72 @@ from snakeoil3_gym import Client
 from Controller.xbox_controller import XboxController
 from Controller.session_logger import SessionLogger
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Funzione principale: run_manual_session
-# ──────────────────────────────────────────────────────────────────────────────
 
-def run_manual_session(host: str = "localhost",
-                       port: int = 3001,
-                       track: str = "unknown",
-                       user: str = "unknown",
-                       max_steps: int = 100_000):
-    """
-    Avvia una sessione manuale completa.
+#  ----------- SESSIONE MANUALE -----------
 
-    Architettura anti-lag
-    ---------------------
-    Il loop è guidato esclusivamente dal timing di TORCS (50 Hz / 20 ms per step).
-    - La lettura del joypad ed eventi pygame avvengono ad OGNI step.
-    - I pacchetti UDP stantii vengono drenati prima di leggere il joypad,
-      così il comando inviato si riferisce sempre all'ultimo stato ricevuto.
+def run_manual_session(host: str = "localhost", port: int = 3001, track: str = "unknown", user: str = "unknown", max_steps: int = 100_000):
     """
-    # ── 1. Joypad ───────────────────────────────────────
+    Funzione principale che avvia la gara con il joypad Xbox.
+    Il ciclo segue la tempistica del server TORCS (50 Hz).
+    Vengono scartati pacchetti UDP vecchi per annullare l'input lag.
+    """
+    
+    # Inizializzo il controller Xbox
     xbox = XboxController()
 
-    # ── 2. Logger ────────────────────────────────────────────────────
+    # Inizializzo il sistema di logging
     logger = SessionLogger(user=user, track=track)
 
-    # ── 3. Connessione TORCS ─────────────────────────────────────────────────
+    # Inizializzo la connessione a TORCS
     print(f"\n[TORCS] Connessione a {host}:{port} ...")
     C = Client(H=host, p=port, t=track)
     print("[TORCS] Connesso!\n")
-    print("Controlli: Stick=steer  RT=accel  LT=brake  B=gear+  A=gear-  Select=restart  Start=pausa")
-    print()
+    print("Controlli: Stick=steer  RT=accel  LT=brake  B=gear+  A=gear-  Select=restart  Start=pausa\n")
 
     step    = 0
     running = True
 
-    # ── Conteggio giri ────────────────────────────────────────────────────────
-    # Un giro è completato quando distFromStart torna vicino a 0
-    # (scende di oltre LAP_WRAP_THRESHOLD rispetto al valore dello step precedente).
-    LAP_WRAP_THRESHOLD = 200.0    # metri — soglia sicura per qualsiasi pista
-    LAPS_TO_COMPLETE   = 1        # giri necessari per una gara valida
-    _prev_dist         = None     # distFromStart al passo precedente
-    _laps_completed    = 0        # giri completati finora
+    # Variabili per il calcolo dei giri completati
+    LAP_WRAP_THRESHOLD = 200.0    # Salto di distanza che denota il passaggio del traguardo
+    LAPS_TO_COMPLETE   = 1        # Giri necessari per una gara valida
+    _prev_dist         = None     
+    _laps_completed    = 0        
 
     try:
         while running and step < max_steps:
 
-            # ── 1. Ricevi l'ultimo stato da TORCS ────────────────────────────
-            # get_servers_input() è bloccante: aspetta il prossimo pacchetto UDP.
-            # Questo è il "master clock" del loop (~50 Hz / 20 ms per step).
+            #  ----------- 1. RICEZIONE DATI -----------
+            
+            # Aspetto il pacchetto dal server bloccando il loop (funge da clock)
             C.get_servers_input()
+            
             if C.so is None:
-                # Gara completata SOLO se abbiamo percorso tutti i giri richiesti
+                # Disconnesso. Valuto se la gara è completata con successo
                 logger.race_completed = (_laps_completed >= LAPS_TO_COMPLETE)
                 if logger.race_completed:
                     print(f"[TORCS] Gara completata ({_laps_completed} giri).")
                 else:
-                    print(f"[TORCS] Gara terminata anticipatamente "
-                          f"(giri completati: {_laps_completed}/{LAPS_TO_COMPLETE}).")
+                    print(f"[TORCS] Gara interrotta (giri completati: {_laps_completed}/{LAPS_TO_COMPLETE}).")
                 break
 
-            # ── 2. Drena pacchetti UDP in eccesso (anti-stale-frame) ──────────
-            # Se il render ha impiegato più di 20ms, TORCS potrebbe aver già
-            # inviato il frame successivo. Lo leggiamo per avere lo stato fresco.
+            #  ----------- 2. GESTIONE INPUT LAG -----------
+            
+            # Dreno i pacchetti UDP in eccesso per evitare l'accumulo di ritardo 
             if C.so is not None:
-                C.so.settimeout(0)          # non-blocking momentaneo
+                C.so.settimeout(0) # Non bloccante
                 try:
                     while True:
                         raw, _ = C.so.recvfrom(2**17)
                         decoded = raw.decode('utf-8')
                         if decoded and '***' not in decoded:
-                            C.S.parse_server_str(decoded)   # aggiorna allo stato più recente
+                            C.S.parse_server_str(decoded) # Aggiorno allo stato più recente
                 except _socket.error:
-                    pass                                    # coda svuotata
+                    pass # Ho letto tutti i pacchetti pendenti
                 finally:
-                    C.so.settimeout(1)      # ripristina timeout normale
+                    C.so.settimeout(1) # Rimetto il timeout normale
 
-            # ── 3. Leggi joypad ───────────────────────────────────────────────
+            #  ----------- 3. LETTURA INPUT -----------
+            
             ctrl = xbox.read()
             if ctrl["quit"]:
                 print("\n[INFO] Uscita richiesta.")
@@ -94,30 +83,30 @@ def run_manual_session(host: str = "localhost",
             if ctrl["restart"]:
                 print("\n[INFO] Riavvio gara richiesto!")
                 R = C.R.d
-                R["meta"] = 1
+                R["meta"] = 1 # Segnale speciale per il reset
                 C.respond_to_server()
+                
+                # Resetto variabili interne e log
                 logger.reset()
                 _laps_completed = 0
                 _prev_dist = None
                 continue
 
             paused = ctrl["paused"]
-
             if paused:
-                # ── MODALITÀ PAUSA ──────────────────────────────────────────
-                # Dobbiamo comunque rispondere a TORCS altrimenti il server
-                # pensa che il client si sia disconnesso e resetta la gara.
-                # Inviamo freno leggero per fermare l’auto dolcemente.
+                # Se sono in pausa, devo comunque rispondere al server per evitare la disconnessione
                 R = C.R.d
                 R["accel"]  = 0.0
-                R["brake"]  = 0.5    # freno leggero — l’auto rallenta e si ferma
+                R["brake"]  = 0.5 # Freno piano per fermarmi dolcemente
                 R["steer"]  = 0.0
                 R["clutch"] = 0.0
                 R["meta"]   = 0
                 C.respond_to_server()
-                continue                          # salta log e applica comandi
+                continue
 
-            # ── 5. Applica comandi (solo se NON in pausa) ─────────────────
+            #  ----------- 4. INVIO COMANDI -----------
+            
+            # Applico i comandi rilevati dal joypad
             R = C.R.d
             R["accel"]  = ctrl["accel"]
             R["brake"]  = ctrl["brake"]
@@ -126,22 +115,24 @@ def run_manual_session(host: str = "localhost",
             R["clutch"] = 0.0
             R["meta"]   = 0
 
-            # ── 6. Invia al server (più vicino possibile alla lettura) ─────────
+            # Rispondo immediatamente al server
             C.respond_to_server()
 
-            # ── 7. Conteggio giri ─────────────────────────────────────────────
+            #  ----------- 5. CONTROLLO GIRI E LOG -----------
+            
             dist = C.S.d.get("distFromStart", 0.0)
+            
+            # Se la distanza corrente è molto inferiore rispetto a prima, ho tagliato il traguardo
             if _prev_dist is not None and dist < _prev_dist - LAP_WRAP_THRESHOLD:
                 _laps_completed += 1
                 print(f"[LAP] Giro {_laps_completed} completato!")
             _prev_dist = dist
 
-            # ── 8. Log ────────────────────────────────────────────────────────
             step += 1
             logger.log_step(C.S.d, R)
 
     except KeyboardInterrupt:
-        print("\n[INFO] Ctrl+C rilevato — salvataggio log in corso...")
+        print("\n[INFO] Rilevato arresto da tastiera, salvo e chiudo...")
     except Exception as exc:
         print(f"\n[ERRORE] {exc}")
 
@@ -149,4 +140,4 @@ def run_manual_session(host: str = "localhost",
         logger.save_and_close()
         C.shutdown()
         xbox.close()
-        print("\n[INFO] Sessione terminata correttamente.")
+        print("\n[INFO] Sessione chiusa correttamente.")
