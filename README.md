@@ -60,21 +60,21 @@ Ottenere prestazioni elevate e guida stabile su circuiti complessi come *Corkscr
 
 ## **Strumenti Utilizzati**
 
-* **Ambiente di Simulazione :** TORCS 1.3.4
+* **Ambiente di Simulazione:** TORCS 1.3.4
 
-* **Linguaggio :** Python 3.11.15
+* **Linguaggio:** Python 3.11.15
 
-* **Librerie e Dipendenza Principali**
+* **Librerie e Dipendenze Principali**
 
-   `numpy` – Calcolo numerico\
-   `pandas` – Gestione dati\
+   `numpy` – Calcolo Numerico\
+   `pandas` – Gestione Dati\
    `json / jsonl` – Formato Dati\
    `socket` – Comunicazione UDP\
-   `pygame / ctypes` – Input controller e tastiera\
-   `json / pickle / glob` – Persistenza dati\
+   `pygame / ctypes` – Input Joystick e Tastiera\
+   `pickle / glob` – Persistenza Dati\
    `os / sys / getopt / time / datetime / random` – Sistema e Utility
 
-* **AI Support :** IBM Granite *(supporto per sviluppo e debugging)*
+* **AI Support:** IBM Granite *(supporto per sviluppo e debugging)*
 
 <br>
 
@@ -109,6 +109,6 @@ Il modello segue una pipeline in **5 fasi principali**:
 
 ## **Ringraziamenti**
 
-Un sentito ringraziamento a **IBM Granite** per il contributo determinante nel supportare la progettazione, la generazione e l’ottimizzazione della logica nelle fasi iniziali del progetto.
+Un ringraziamento a **IBM Granite** per il supporto nello sviluppo e nell’ottimizzazione del progetto.
 
 
