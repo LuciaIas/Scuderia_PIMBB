@@ -71,7 +71,7 @@ Ottenere prestazioni elevate e guida stabile su circuiti complessi come *Corkscr
    `json / jsonl` – Formato Dati\
    `socket` – Comunicazione UDP\
    `pygame / ctypes` – Input Joystick e Tastiera\
-   `pickle / glob` – Persistenza Dati\
+   `glob` – Persistenza Dati\
    `os / sys / getopt / time / datetime / random` – Sistema e Utility
 
 * **AI Support:** IBM Granite *(supporto per sviluppo e debugging)*
