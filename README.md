@@ -65,7 +65,7 @@ Ottenere prestazioni elevate e guida stabile su circuiti complessi come *Corkscr
 * **Linguaggio:** Python 3.11.15
 
 * **Librerie e Dipendenze Principali**
-
+   `sklearn` – StandardScaler e PCA
    `numpy` – Calcolo Numerico\
    `pandas` – Gestione Dati\
    `json / jsonl` – Formato Dati\
