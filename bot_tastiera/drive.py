@@ -1,5 +1,5 @@
-import ctypes   # Importo la libreria necessaria per l'input da tastiera
-import json # Importo la libreria per l'interazione coi file json
+import ctypes   # Libreria l'input da tastiera
+import json # Libreria per l'interazione coi file json
 
 def clip(v, lo, hi):
     """
@@ -11,30 +11,29 @@ def clip(v, lo, hi):
     else: return v
 
 
-# Funzione di guida a partire da quelle di "snakeoil3-gym" per l'AI
 def drive_example(c):
     """
-    Funzione principale (Bot) che viene richiamata ad ogni tick/frame del simulatore (circa 50 volte al secondo).
+    Funzione principale che viene richiamata ad ogni frame del simulatore (circa 50 volte al secondo).
     Contiene sia il bot di guida, che l'intercettazione fisica della tastiera.
-
+   
     """
     
-    # S: Dizionario contenente i valori dei Sensori appena ricevuti dal server di Torcs (Velocità, danni, ecc.)
-    # R: Dizionario contenente le Risposte (attuatori) che invieremo al server (Acceleratore, freno, sterzo)
+    # S: Dizionario contenente i valori dei sensori appena ricevuti dal server di Torcs (Velocità, danni, ecc.)
+    # R: Dizionario contenente le risposte che invieremo al server (Acceleratore, freno, sterzo)
     S, R = c.S.d, c.R.d
 
 
-    # === LOGICA DI GUIDA AUTOMATICA (BOT) 
-    # Viene eseguita solo se l'utente non ha scelto la modalità 1
+    # LOGICA DI GUIDA AUTOMATICA (BOT) 
+    # Viene eseguita solo se l'utente ha scelto la modalità 1
     if c.control_mode == 'auto':
         
-        #  -----------  1. ANALISI DEL TRACCIATO (Traiettoria centrata fluida) ----------- 
-        # Verifico quanta strada dritta si trova davanti alla vettura, interrogando i laser centrali dell'auto
+        # ANALISI DEL TRACCIATO 
+        # Verifico quanta strada dritta si trova davanti alla vettura interrogando i laser centrali dell'auto
         look_ahead = max(S['track'][7:12])
         
 
 
-        #  -----------  2. CALCOLO DELLA VELOCITÀ TARGET E STACCATA -----------
+        # CALCOLO DELLA VELOCITÀ TARGET E STACCATA 
         # Regolo la velocità in base allo spazio disponibile
         if look_ahead > 160:
             target_speed = 290.0
@@ -43,8 +42,8 @@ def drive_example(c):
             target_speed = look_ahead * 2.3
 
 
-        # Regolo la velocità in base alla posizione in pista; Se abs(S['trackPos']) > 0.95, siamo molto vicini al bordo 
-        # e bisogna rallentare        
+        # Regolo la velocità in base alla posizione in pista
+        # Se abs(S['trackPos']) > 0.95, siamo molto vicini al bordo, quindi deve rallentare
         if abs(S['trackPos']) > 0.95:
             target_speed = min(target_speed, 250.0)
 
@@ -53,22 +52,22 @@ def drive_example(c):
         is_off_track = abs(S['trackPos']) >= 1.05
 
         if is_off_track:
-            target_speed = 40.0 # Fuori pista rallento pesantemente per non slittare o girarmi
+            target_speed = 40.0 # Fuori pista rallento molto per non slittare o girarmi
             
-            # Se l'auto è orientata male (angolo di imbardata elevato), rallento ancora di più
+            # Se l'auto è orientata male (angolo elevato), rallento ancora di più
             if abs(S['angle']) > 0.7:
                 target_speed = 20.0
 
-        # Ulteriore controllo per capire se stiammo abandando e quindi aggiustare lo sterzo
+        # Altro controllo per capire se stiammo sbandando e quindi aggiustare lo sterzo
         is_skidding = abs(S.get('speedY', 0)) > 5.0 or (abs(S['angle']) > 0.45 and S['speedX'] > 60.0)
 
 
 
-        #  ----------- 3. CONTROLLO STERZO -----------  
+        # CONTROLLO STERZO 
 
         if is_off_track:
             
-            # Manovra disperata per rientrare basata sull'angolo relativo alla pista
+            # Manovra per rientrare basata sull'angolo relativo alla pista
             steer_target = (S['angle'] * 0.9) - (S['trackPos'] * 0.4)
 
         elif is_skidding:
@@ -78,11 +77,11 @@ def drive_example(c):
 
         else:
             
-            # La correzione spaziale segue una curva al cubo per essere morbida al centro pista,
-            # ma fortissima e reattiva se ci stiamo allontanando troppo ai lati
+            # La correzione spaziale usa una curva cubica: è morbida al centro della pista
+            # e diventa più forte se l'auto si avvicina ai bordi
             track_correction = (S['trackPos'] ** 3) * 0.8
 
-            # Il target dello sterzo cerca di tenerci paralleli all'asse della pista e al centro
+            # Il target dello sterzo cerca di restare parallelo all'asse della pista e al centro
             steer_target = (S['angle'] * 0.8) - track_correction
             
 
@@ -92,39 +91,39 @@ def drive_example(c):
 
 
 
-        #  ----------- 4. CONTROLLO ACCELERATORE E FRENO -----------
+        # CONTROLLO ACCELERATORE E FRENO
 
-        # Calcoliamo l'errore di velocità (la differenza tra quanto vorremmo andare e la nostra velocità reale)
+        # Calcola la differenza tra quanto vorremmo andare e la nostra velocità reale
         speed_error = target_speed - S['speedX']
 
-        if speed_error > 0: # Dobbiamo accelerare perché siamo sotto la velocità target
+        if speed_error > 0: # Dobbiamo accelerare se siamo sotto la velocità target
             
-            # Riduco l'acceleratore massimo se lo sterzo è piegato (per non dare gas e curvare forte allo stesso tempo)
+            # Riduco l'acceleratore se lo sterzo è piegato (per non dare gas e curvare forte allo stesso tempo)
             max_accel = 1.0 - (abs(R['steer']) * 0.5) 
             R['accel'] = clip(speed_error / 20.0, 0.0, max_accel)
             R['brake'] = 0.0 # Stacco il freno
             
 
-            # Controllo di Trazione (TCS): Calcola la differenza di rotazione tra ruote posteriori (motrici) e anteriori
+            # Controllo la trazione: calcola la differenza di rotazione tra ruote posteriori (motrici) e anteriori
             spin_diff = (S['wheelSpinVel'][2] + S['wheelSpinVel'][3]) - (S['wheelSpinVel'][0] + S['wheelSpinVel'][1])
 
             if spin_diff > 2.0:  
-                # Se le ruote posteriori girano a vuoto, taglio il gas istantaneamente per riprendere grip
+                # Se le ruote posteriori girano a vuoto, taglio il gas per riprendere grip
                 R['accel'] *= 0.6 
             if is_skidding:
-                # Se l'auto sbanda di traverso, taglia pesantemente il gas per permettere alle ruote posteriori di smettere di derapare
+                # Se l'auto sbanda di traverso, taglia il gas per permettere alle ruote posteriori di smettere di slittare
                 R['accel'] *= 0.3 
 
         else:
 
             # Bisogna rallentare
             R['accel'] = 0.0
-            # Evita frenate "piene" se l'auto è sterzata
+            # Evita frenate violente se l'auto è sterzata
             max_brake = 1.0 - (abs(R['steer']) * 0.4)
             # Frena in modo proporzionale a quanto siamo fuori velocità
             R['brake'] = clip(-speed_error / 15.0, 0.0, max_brake)
 
-        # Ripresa da fermo: se la macchina è ferma (vel < 5) ma deve andare (> 10), schiaccio il pedale del gas al massimo
+        # Se la macchina è ferma (vel < 5) ma deve andare (> 10), schiaccio il pedale del gas al massimo
         if S['speedX'] < 5.0 and target_speed > 10.0:
             R['accel'] = 1.0
             R['brake'] = 0.0
@@ -136,7 +135,7 @@ def drive_example(c):
 
 
     # OVERRIDE MANUALE 
-    # Inizializzo al primo loop le variabili interne per la memoria dello stato di pedali e sterzo
+    # Inizializzo le variabili interne per la memoria dello stato di pedali e sterzo
     if not hasattr(c, 'smooth_steer'):
         c.smooth_steer = R['steer']
         c.smooth_accel = R['accel']
@@ -152,7 +151,7 @@ def drive_example(c):
     manual_d = (ctypes.windll.user32.GetAsyncKeyState(0x44) & 0x8000) != 0 # Tasto D (0x44)
 
 
-    #  ----------- MODELLO FISICO AVANZATO (Input Shaping) -----------
+    # MODELLO FISICO AVANZATO (Input Shaping)
 
     speed_factor = max(1.0, S['speedX'])
 
@@ -168,7 +167,7 @@ def drive_example(c):
     decay_rate = 0.0
 
 
-    #  ----------- ELABORAZIONE PEDALI -----------
+    # ELABORAZIONE PEDALI
 
     if manual_w:
         # Pressione di W: accelero al 100%
@@ -187,7 +186,7 @@ def drive_example(c):
             R['brake'] = c.smooth_brake
             c.manual_pedal_active = True
         else:
-            # In movimento: S agisce da freno, influenzato dal carico aerodinamico
+            # In movimento: S agisce da freno
             c.smooth_brake = c.smooth_brake * (1 - alpha_pedals) + aero_grip * alpha_pedals
             c.smooth_accel = 0.0
             R['brake'] = c.smooth_brake
@@ -212,7 +211,7 @@ def drive_example(c):
             c.smooth_brake = R['brake']
 
 
-    #  ----------- ELABORAZIONE STERZO MANUALE -----------
+    # ELABORAZIONE STERZO MANUALE
 
     if manual_a or manual_d:
         if manual_a:
@@ -236,7 +235,7 @@ def drive_example(c):
             c.smooth_steer = R['steer']
 
 
-    #  ----------- ABS GLOBALE AVANZATO -----------
+    # ABS GLOBALE AVANZATO
 
     if R['brake'] > 0:
         # Riduco la potenza frenante massima in curva per non bloccare le ruote
@@ -245,14 +244,14 @@ def drive_example(c):
         R['brake'] = min(R['brake'], max_safe_brake)
 
 
-    #  ----------- 5. GESTIONE CAMBIO AUTOMATICO -----------
+    # GESTIONE CAMBIO AUTOMATICO
 
     if not c.manual_gear_active:
         rpm = S.get('rpm', 0)
         speed = S.get('speedX', 0)
         gear = S.get('gear', 1)
         
-        # Contatore di attesa tra una cambiata e l'altra per evitare sfarfallii
+        # Contatore di attesa tra una cambiata e l'altra 
         if not hasattr(c, 'gear_step'): c.gear_step = 0
         c.gear_step += 1
 
@@ -268,12 +267,12 @@ def drive_example(c):
         if gear <= 0 and speed < 5 and not manual_s:
             R['gear'] = 1
 
-        # Inserisco la Retromarcia in automatico se premo il tasto 'S' da fermo
+        # Inserisco la retromarcia in automatico se premo il tasto 'S' da fermo
         if manual_s and speed < 1.0:
             R['gear'] = -1
 
 
-    #  ----------- 6. RECUPERO EMERGENZA (Anti-Stuck) -----------
+    # RECUPERO EMERGENZA 
 
     # Manovra automatica per sganciarsi se l'auto è bloccata ad un ostacolo
     if c.control_mode == 'auto' and S.get('stucktimer', 0) > 50: 
@@ -283,7 +282,7 @@ def drive_example(c):
         R['steer'] = -S.get('angle', 0) # Sterza per uscire dall'ostacolo
         
 
-    #  ----------- FASE DI LOGGING DEI DATI (JSONL) -----------
+    # FASE DI LOGGING DEI DATI (JSONL)
 
     # Salvo il log solo se i pacchetti base sono presenti
     if 'track' in S and 'wheelSpinVel' in S and 'speedX' in S:

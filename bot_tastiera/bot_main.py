@@ -1,8 +1,8 @@
-import sys  # Importo la libreria per interagire col sistema
-import os   # Importo la libreria per interagire con l'OS
-from datetime import datetime   # Importo la libreria per interagire con la data e l'ora
+import sys  # Libreria per interagire col sistema
+import os   # Libreria per interagire con l'OS
+from datetime import datetime   # Libreria per interagire con data e ora
 
-# Evita la creazione di file compilati __pycache__ che possono intasare la directory
+# Evita la creazione di file __pycache__ 
 sys.dont_write_bytecode = True
 
 # Aggiunge la directory padre (root) al sys.path per permettere l'importazione di funzioni dal
@@ -61,7 +61,7 @@ def setup_logging(C):
 def main():
 
     mode, auto_gear = ask_mode()    # Chiedo all'utente la modalità di guida e cambio
-    print(f"--- MODALITÀ: {mode.upper()} | CAMBIO: {'AUTO' if auto_gear else 'MANUAL'} ---")    # Stampa della modalità
+    print(f"--- MODALITÀ: {mode.upper()} | CAMBIO: {'AUTO' if auto_gear else 'MANUAL'} ---")    # Stampa modalità scelta
     print("="*45 + "\n")
 
     C = Client(p=3001)  # Inizializza il client di connessione al server UDP di Torcs sulla porta 3001
@@ -70,9 +70,9 @@ def main():
     C.control_mode = mode
     C.auto_gear = auto_gear
     
-    setup_logging(C)    # Prepara le variabili interne necessarie per tenere traccia della sessione (logging)
+    setup_logging(C)    # Prepara le variabili interne necessarie per tenere traccia della sessione 
 
-    for step in range(C.maxSteps, 0, -1):  # Loop principale di gara: esegue l'aggiornamento un numero massimo di step stabiliti (maxSteps), procedendo al contrario
+    for step in range(C.maxSteps, 0, -1):  # Loop principale di gara: esegue l'aggiornamento un numero massimo di step stabiliti (maxSteps)
         
         C.get_servers_input()  # Attendo e ricevo l'ultimo pacchetto dal server (dati sensori del veicolo e pista)
         
@@ -87,7 +87,7 @@ def main():
         drive_example(C)    # Chiama la logica di guida vera e propria, contenuta in drive.py
         
 
-        # --- Rilevamento completamento giro reale ---
+        # Rilevamento completamento giro reale
         
         dist = C.S.d.get("distFromStart", 0.0)  # distanza ciclica dal traguardo (si azzera quando si passa la linea del traguardo)
         dist_raced = C.S.d.get("distRaced", 0.0)    # distanza totale macinata dall'inizio assoluto, non si azzera mai
@@ -98,7 +98,7 @@ def main():
 
             # Ignoro il primo attraversamento del traguardo
             if dist_raced > 500.0: 
-                C.laps_completed += 1 # Un giro intero vero è stato concluso!
+                C.laps_completed += 1 # Un vero giro intero è stato concluso
                 print(f"[LAP] Giro {C.laps_completed} completato!")
         
         
@@ -112,11 +112,11 @@ def main():
     # Verifico che la gara si sia chiusa correttamente
     if getattr(C, 'race_completed', False) and len(C.records) > 0:
 
-        # Creo il nome del file da salvare nei log basandomi sulla data e sull'orario corrente per non sovrascrivere file passati
+        # Creo il nome del file da salvare nei log con data e ora corrente per non sovrascrivere file passati
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         log_dir = "logs"
         os.makedirs(log_dir, exist_ok=True) # Crea la cartella se assente
-        log_filename = os.path.join(log_dir, f"session_{timestamp}.jsonl")    # Nome del file dimanico, numerato in base a quello col numero più grande nella cartella
+        log_filename = os.path.join(log_dir, f"session_{timestamp}.jsonl") 
         
         # Scrivo nel file i dati del log
         with open(log_filename, mode='w', encoding='utf-8') as f:

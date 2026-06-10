@@ -1,17 +1,15 @@
-# torcs_ai_driver.py
-# ==================
-# Modulo per collegare la rete neurale End-to-End JIT con TORCS via UDP.
-# Gestione 100% IA: Sterzo, Acceleratore, Freno e Marce.
+# Script di guida autonoma: carica il modello TorchScript e controlla l'auto in tempo reale
+# Gestisce connessione al simulatore, inferenza del modello e invio dei comandi (sterzo, gas, freno, marce)
 
 import os
 import sys
-import getopt
+import getopt # Gestisce gli argomenti passati da linea di comando
 import time
 
-# Forza OpenMP a ignorare le copie multiple del runtime libiomp5md per evitare crash
+# Evita crash causati da conflitti tra più istanze di OpenMP 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-# Evito la creazione di file compilati __pycache__ velocizzando l'esecuzione
+# Evita la creazione di file __pycache__ velocizzando l'esecuzione
 sys.dont_write_bytecode = True
 
 # Importo il client UDP base per interfacciarsi con il server di TORCS
@@ -25,12 +23,10 @@ except ImportError:
     sys.exit(1)
 
 
-#  ----------- 1. CARICAMENTO MODELLO END-TO-END -----------
-
+# CARICAMENTO MODELLO END-TO-END
+# Carica il modello compilato JIT (TorchScript) che include già Scaler e PCA
 def load_jit_model(model_dir: str):
 
-    # Carico il modello compilato JIT (TorchScript) che include già Scaler e PCA.
-    # A differenza di torch.load, jit.load non ha bisogno della definizione delle classi in python.
     model_path = os.path.join(model_dir, "torcs_driver_jit.pt")
     
     if not os.path.isfile(model_path):
@@ -38,8 +34,8 @@ def load_jit_model(model_dir: str):
         print("         Esegui prima l'addestramento con train_model.py!")
         sys.exit(1)
         
-    # Carico il modello mappandolo sulla CPU per un'inferenza super leggera, 
-    # dato che le GPU su frame singoli non offrono vantaggi e aggiungono overhead.
+    # Carica il modello AI già compilato e lo esegue sulla CPU
+    # per evitare rallentamenti inutili dovuti alla GPU 
     net = torch.jit.load(model_path, map_location="cpu")
     
     # Imposto il modello in modalità valutazione (disabilita Dropout e simili)
@@ -48,10 +44,10 @@ def load_jit_model(model_dir: str):
     print(f"[PIPELINE] Modello End-to-End caricato da: {model_path}")
     return net
 
+# Preparo l'array raw da dare alla rete 
+# La rete JIT si occuperà in automatico della Normalizzazione e PCA ai pesi interni
 def sensors_to_tensor(S: dict) -> torch.Tensor:
 
-    # Preparo l'array raw da dare in pasto alla rete. 
-    # La rete JIT si occuperà in automatico della Normalizzazione e PCA ai pesi interni.
     track = list(S.get("track", []))
     
     # Riempio i valori mancanti del telemetro o li taglio a 19 per uniformare l'input
@@ -70,27 +66,25 @@ def sensors_to_tensor(S: dict) -> torch.Tensor:
     return torch.tensor([x_raw], dtype=torch.float32)
 
 
-#  ----------- 2. CLASSE DRIVER (IA) -----------
-
+# CLASSE DRIVER (IA)
+# Pilota autonomo gestito interamente dalla rete neurale
 class AIDriver:
-    
-    # Pilota autonomo gestito interamente dalla rete neurale.
     
     def __init__(self, net):
         self.net = net
         self.n_total = 0
         self.n_ai = 0
 
+    # Calcolo e applico l'azione da compiere basandomi sullo stato dei sensori correnti
     def act(self, C) -> dict:
 
-        # Calcolo e applico l'azione da compiere basandomi sullo stato dei sensori correnti.
         S, R = C.S.d, C.R.d
-        self.n_total += 1
+        self.n_total += 1 # Frame processati
 
-        # Inferenza Rete End-to-End
+        # Inferenza rete End-to-End
         x_raw = sensors_to_tensor(S)
         
-        # torch.no_grad() disabilita il calcolo dei gradienti per risparmiare moltissima RAM e CPU in fase di esecuzione
+        # Disabilita il calcolo dei gradienti per risparmiare RAM e CPU in fase di esecuzione
         with torch.no_grad():
             # squeeze(0) rimuove la dimensione di batch, numpy() converte il tensore in array classico
             out = self.net(x_raw).squeeze(0).numpy()
@@ -101,7 +95,7 @@ class AIDriver:
         brake     = float(out[2])
         raw_gear  = float(out[3])
 
-        # Applico lo sterzo diretto, limitandolo al range consentito (-1.0, 1.0)
+        # Limito sterzo al range consentito (-1.0, 1.0)
         steer = clip(raw_steer, -1.0, 1.0)
 
         # La marcia era stata normalizzata (divisa per 6) durante l'addestramento, qui la ripristino
@@ -119,19 +113,17 @@ class AIDriver:
         self.n_ai += 1
         return R
 
+    # Stampa le statistiche finali al termine della gara
     def print_stats(self):
 
-        # Stampo le statistiche finali di intervento al termine della gara.
         tot = max(1, self.n_total)
         print(f"\n[STATS] Step totali: {self.n_total:,}")
         print(f"[STATS] Step IA    : {self.n_ai:,} ({100 * self.n_ai / tot:.1f}%)")
 
 
-#  ----------- 3. LOOP PRINCIPALE -----------
-
+# LOOP PRINCIPALE
+# Inizializza il client UDP e avvia il loop di guida automatica infinito
 def run_ai_session(host="localhost", port=3001, model_dir="models", max_steps=100000, max_episodes=1):
-    
-    # Inizializzo il client UDP e avvio il loop di guida automatica infinito.
     
     # Preparo il modello e il pilota
     net = load_jit_model(model_dir)
@@ -162,7 +154,7 @@ def run_ai_session(host="localhost", port=3001, model_dir="models", max_steps=10
             
             ep_steps += 1
 
-            # Stampo log leggeri a schermo ogni 250 frame
+            # Stampo log a schermo ogni 250 frame
             if ep_steps % 250 == 0:
                 print(f" step={ep_steps:6d}  t={time.time()-ep_start:5.0f}s  speed={C.S.d.get('speedX', 0.0):6.1f} "
                       f" steer={C.R.d.get('steer', 0.0):+.3f}  accel={C.R.d.get('accel', 0.0):.2f} "
@@ -175,7 +167,7 @@ def run_ai_session(host="localhost", port=3001, model_dir="models", max_steps=10
 if __name__ == "__main__":
     host, port, model_dir, max_steps, max_episodes = "localhost", 3001, "models", 100000, 1
     
-    # getopt per leggere agevolmente eventuali flag (es. -H, -p) passati da console
+    # Legge argomenti da terminale con getopt
     opts, _ = getopt.getopt(sys.argv[1:], "H:p:m:", ["host=", "port=", "model-dir="])
     for opt, val in opts:
         if opt in ("-H", "--host"): 
@@ -185,8 +177,10 @@ if __name__ == "__main__":
         elif opt in ("-m", "--model-dir"): 
             model_dir = val
 
-    # Imposto il path assoluto per la cartella dei modelli così il client li trova ovunque si trovi
+    # Cerca la cartella "models" e la converte in un percorso assoluto
+    # per trovare il file del modello (torcs_driver_jit.pt)
     base = os.path.dirname(os.path.abspath(__file__))
     model_dir = model_dir if os.path.isabs(model_dir) else os.path.join(base, model_dir)
     
+    # Avvia sistema AI
     run_ai_session(host, port, model_dir, max_steps, max_episodes)
