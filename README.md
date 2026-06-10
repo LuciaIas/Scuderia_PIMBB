@@ -29,12 +29,13 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 <br>
 
 ## **Obiettivo Del Progetto**
-Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
+Ottenere prestazioni elevate e guida stabile su circuiti complessi come *Corkscrew*.
 
 **Approccio Adottato:** 
-* Imitation Learning *(Behavioural Cloning)*
-* Analisi della telemetria
-* Pipeline di Machine Learning supervisionato
+* Imitation Learning *(Behavioural Cloning)* per apprendere dai dati di guida.
+* Utilizzo di una rete neurale per mappare i sensori alle azioni di guida.
+* Analisi e utilizzo della telemetria del veicolo.
+* Pipeline completa: raccolta dati, preprocessing e inferenza in tempo reale.
 
 
 
@@ -63,10 +64,11 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 
 * **Linguaggio :** Python 3.11.15
 
-* **Librerie principali**
+* **Librerie e Dipendenza Principali**
 
    `numpy` – Calcolo numerico\
-   `pandas / jsonl` – Gestione dati\
+   `pandas` – Gestione dati\
+   `json / jsonl` – Formato Dati\
    `socket` – Comunicazione UDP\
    `pygame / ctypes` – Input controller e tastiera\
    `json / pickle / glob` – Persistenza dati\
@@ -78,7 +80,7 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 
 ## **Pipeline di Machine Learning**
 
-Il modello segue una pipeline in **3 fasi principali**:
+Il modello segue una pipeline in **5 fasi principali**:
 
 **1. Raccolta dati:** acquisizione dei dati dal simulatore TORCS tramite i sensori del veicolo.\
 **2. Preprocessing:** normalizzazione e riduzione dimensionale (Scaler + PCA).\
@@ -90,7 +92,7 @@ Il modello segue una pipeline in **3 fasi principali**:
 
 ## **Modello Neurale**
 
-**Architettura:** Feed-Forward Deep Network (TorcsDriverNet)
+**Architettura:** Rete Neurale Feed-Forward (TorcsDriverNet) per la regressione delle azioni di guida.
 
 
 
@@ -107,6 +109,6 @@ Il modello segue una pipeline in **3 fasi principali**:
 
 ## **Ringraziamenti**
 
-Un sentito ringraziamento a **IBM Granite** per il contributo determinante nel supportare la progettazione, la generazione e l’ottimizzazione della logica algoritmica nelle fasi iniziali del progetto.
+Un sentito ringraziamento a **IBM Granite** per il contributo determinante nel supportare la progettazione, la generazione e l’ottimizzazione della logica nelle fasi iniziali del progetto.
 
 
