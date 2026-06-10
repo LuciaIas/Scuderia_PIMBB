@@ -18,7 +18,7 @@ Questo progetto implementa un sistema basato su **Intelligenza Artificiale**, pr
 
 <br>
 
-## **Team – Scuderia PIMBB**
+## **Gruppo 2 – Scuderia PIMBB**
 
 * Bello Daniel
 * Bentivenga Antonio
