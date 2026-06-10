@@ -1,6 +1,5 @@
 import sys
 import os
-import time
 import socket as _socket
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

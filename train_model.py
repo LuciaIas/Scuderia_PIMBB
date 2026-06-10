@@ -10,7 +10,6 @@ import glob
 import getopt
 import random
 import time
-import pickle
 import numpy as np
 
 try:
@@ -144,13 +143,7 @@ def fit_scaler_pca(X_raw: np.ndarray, pca_components, model_dir: str):
     pca = PCA(n_components=pca_components, random_state=0)
     X_pca = pca.fit_transform(X_scaled).astype(np.float32)
 
-    # Salvo gli oggetti scaler e pca per uso futuro (se necessario fuori dal JIT)
-    os.makedirs(model_dir, exist_ok=True)
-    with open(os.path.join(model_dir, "scaler.pkl"), "wb") as f: 
-        pickle.dump(scaler, f)
-    with open(os.path.join(model_dir, "pca.pkl"), "wb") as f: 
-        pickle.dump(pca, f)
-    
+
     return X_pca, pca.n_components_, scaler, pca
 
 

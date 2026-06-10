@@ -7,7 +7,6 @@ import os
 import sys
 import getopt
 import time
-import numpy as np
 
 # Evito la creazione di file compilati __pycache__ velocizzando l'esecuzione
 sys.dont_write_bytecode = True
