@@ -45,14 +45,14 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 ```bash
 /scuderia_pimbb_project
 │
-├── /bot_tastiera        # Input manuale / simulato
-├── /controller          # Acquisizione e logging telemetria
-├── /models              # Modelli addestrati
-│
-├── snakeoil3_gym.py     # Interfaccia comunicazione TORCS (UDP)
-├── torcs_ai_driver.py   # Logica principale di guida
-├── train_model.py       # Pipeline di training
-└── README.md
+├── /bot_tastiera        # Input Manuale / Simulato
+├── /controller          # Acquisizione Dati
+├── /models              # Modelli Addestrati
+├── /logs                # Archiviazione Dati di Training 
+├── snakeoil3_gym.py     # Interfaccia TORCS (client-server)
+├── torcs_ai_driver.py   # Logica Principale di Guida
+├── train_model.py       # Pipeline di Training
+└── README.md            # Documentazione Tecnica del Progetto
 ```
 
 <br>
@@ -72,7 +72,7 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
    `json / pickle / glob` – Persistenza dati\
    `os / sys / getopt / time / datetime / random` – Sistema e Utility
 
-* **AI Support :** IBM Granite *(copilota per sviluppo e debugging)*
+* **AI Support :** IBM Granite *(supporto per sviluppo e debugging)*
 
 <br>
 
@@ -80,10 +80,11 @@ Ottenere prestazioni elevate su circuiti complessi come *Corkscrew*
 
 Il modello segue una pipeline in **3 fasi principali**:
 
- **1. Preprocessing**  : Clipping dei valori (`np.clip`), Normalizzazione statistica *(StandardScaler)* e Riduzione dimensionale *(PCA)*\
- **2. Training** : Paradigma *Behavioural Cloning*, Task regressione continua *(steer, accel, brake, gear)*\
- **3. Inferenza** : Ottimizzazione tramite *JIT*, Output in tempo reale per il simulatore
-
+**1. Raccolta dati:** acquisizione dei dati dal simulatore TORCS tramite i sensori del veicolo.\
+**2. Preprocessing:** normalizzazione e riduzione dimensionale (Scaler + PCA).\
+**3. Training:** addestramento della rete neurale con PyTorch (Behavioural Cloning).\
+**4. Export:** salvataggio del modello in formato JIT con preprocessing integrato.\
+**5. Inferenza:** utilizzo in tempo reale per generare i comandi di guida nel simulatore.
 
 <br>
 
