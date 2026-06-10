@@ -8,6 +8,9 @@ import sys
 import getopt
 import time
 
+# Forza OpenMP a ignorare le copie multiple del runtime libiomp5md per evitare crash
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 # Evito la creazione di file compilati __pycache__ velocizzando l'esecuzione
 sys.dont_write_bytecode = True
 

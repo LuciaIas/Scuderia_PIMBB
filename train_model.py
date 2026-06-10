@@ -10,6 +10,10 @@ import glob
 import getopt
 import random
 import time
+
+# Forza OpenMP a ignorare le copie multiple del runtime libiomp5md per evitare crash
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import numpy as np
 
 try:
