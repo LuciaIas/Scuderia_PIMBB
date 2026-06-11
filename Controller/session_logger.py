@@ -7,12 +7,10 @@ import datetime
 LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "logs")
 
 
-#  ----------- CLASSE: SessionLogger -----------
-
 class SessionLogger:
     """
     Gestisce il salvataggio dei log di telemetria e comandi in formato JSONL.
-    Crea un file di log temporaneo durante la gara e lo salva in maniera permanente
+    Mantiene i dati in memoria (in un array) durante la gara e e scrive su file fisicamente
     solo a gara terminata con successo.
     """
 
@@ -24,13 +22,17 @@ class SessionLogger:
         self.user           = user
         # Definisco il path temporaneo (sarà rinominato a fine sessione)
         self.filepath       = os.path.join(LOG_DIR, f"session_{ts}.jsonl")
-        self.records        = []
+        self.records        = [] # Array che conterrà tutte le righe di log in memoria
         self._step_count    = 0
         self.race_completed = False   # Flag per la validità della gara
         print(f"[LOG] Sessione avviata. I log saranno salvati in: {self.filepath} a fine gara.")
 
     def log_step(self, server_state: dict, action: dict):
-        """Preparo e aggiungo un nuovo record di telemetria per questo step."""
+        """
+        Prende lo stato attuale del veicolo (velocità, posizione) e i comandi
+        del joypad (gas, freno) per quello specifico istante (step), e li 
+        struttura in un formato standard per il salvataggio.
+        """
         record = {
             "user":      self.user,
             "timestamp": time.time(),
@@ -49,18 +51,18 @@ class SessionLogger:
                 "gear":  action.get("gear",  1),
             },
         }
-        # Aggiungo la stringa JSON compressa all'array in memoria
+        # Converte il record in una stringa di testo JSON
         self.records.append(json.dumps(record, separators=(',', ':')) + '\n')
         self._step_count += 1
 
     def reset(self):
-        """Azzero i log in memoria (usato per il riavvio della gara)."""
+        # Svuota la memoria e azzera il contatore 
         self.records = []
         self._step_count = 0
 
+    # Legge la cartella dei log e ricava il prossimo numero progressivo per log_garaN
     @staticmethod
     def _next_race_number() -> int:
-        """Legge la cartella dei log e ricava il prossimo numero progressivo per log_garaN."""
         existing = [
             f for f in os.listdir(LOG_DIR)
             if f.startswith("log_gara") and f.endswith(".jsonl")
@@ -73,16 +75,16 @@ class SessionLogger:
                 pass
         return max(nums, default=0) + 1
 
+    # Rinomina il file di sessione in log_garaN.jsonl per l'archivio definitivo
     def rename_as_race_log(self) -> str:
-        """Rinomina il file di sessione in log_garaN.jsonl per l'archivio definitivo."""
         n = self._next_race_number()
         new_path = os.path.join(LOG_DIR, f"log_gara{n}.jsonl")
         os.rename(self.filepath, new_path)
         self.filepath = new_path
         return new_path
 
+    # Scrivo tutto su file se la gara è stata completata correttamente
     def save_and_close(self):
-        """Scrivo tutto su file se la gara è stata completata correttamente."""
         if self.race_completed:
             with open(self.filepath, "w", encoding="utf-8") as f:
                 f.writelines(self.records)

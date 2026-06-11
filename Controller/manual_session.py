@@ -9,7 +9,7 @@ from Controller.xbox_controller import XboxController
 from Controller.session_logger import SessionLogger
 
 
-#  ----------- SESSIONE MANUALE -----------
+# SESSIONE MANUALE
 
 def run_manual_session(host: str = "localhost", port: int = 3001, track: str = "unknown", user: str = "unknown", max_steps: int = 100_000):
     """
@@ -42,7 +42,7 @@ def run_manual_session(host: str = "localhost", port: int = 3001, track: str = "
     try:
         while running and step < max_steps:
 
-            #  ----------- 1. RICEZIONE DATI -----------
+            #  RICEZIONE DATI
             
             # Aspetto il pacchetto dal server bloccando il loop (funge da clock)
             C.get_servers_input()
@@ -56,23 +56,24 @@ def run_manual_session(host: str = "localhost", port: int = 3001, track: str = "
                     print(f"[TORCS] Gara interrotta (giri completati: {_laps_completed}/{LAPS_TO_COMPLETE}).")
                 break
 
-            #  ----------- 2. GESTIONE INPUT LAG -----------
+            # GESTIONE INPUT LAG
             
-            # Dreno i pacchetti UDP in eccesso per evitare l'accumulo di ritardo 
+            # Scarta i pacchetti vecchi accumulati nel buffer di rete
             if C.so is not None:
-                C.so.settimeout(0) # Non bloccante
+                C.so.settimeout(0) # Imposta timeout a 0: se non ci sono dati da leggere, va avanti
                 try:
                     while True:
+                        # Legge e converte i dati in stringa
                         raw, _ = C.so.recvfrom(2**17)
                         decoded = raw.decode('utf-8')
                         if decoded and '***' not in decoded:
                             C.S.parse_server_str(decoded) # Aggiorno allo stato più recente
                 except _socket.error:
-                    pass # Ho letto tutti i pacchetti pendenti
+                    pass # Uscita dal ciclo (buffer vuoto)
                 finally:
                     C.so.settimeout(1) # Rimetto il timeout normale
 
-            #  ----------- 3. LETTURA INPUT -----------
+            # LETTURA INPUT 
             
             ctrl = xbox.read()
             if ctrl["quit"]:
@@ -93,7 +94,7 @@ def run_manual_session(host: str = "localhost", port: int = 3001, track: str = "
 
             paused = ctrl["paused"]
             if paused:
-                # Se sono in pausa, devo comunque rispondere al server per evitare la disconnessione
+                # Se sono in pausa, invia continuamente comandi "vuoti" per mantenere vivo il collegamento
                 R = C.R.d
                 R["accel"]  = 0.0
                 R["brake"]  = 0.5 # Freno piano per fermarmi dolcemente
@@ -103,7 +104,7 @@ def run_manual_session(host: str = "localhost", port: int = 3001, track: str = "
                 C.respond_to_server()
                 continue
 
-            #  ----------- 4. INVIO COMANDI -----------
+            # INVIO COMANDI 
             
             # Applico i comandi rilevati dal joypad
             R = C.R.d
@@ -117,7 +118,7 @@ def run_manual_session(host: str = "localhost", port: int = 3001, track: str = "
             # Rispondo immediatamente al server
             C.respond_to_server()
 
-            #  ----------- 5. CONTROLLO GIRI E LOG -----------
+            # CONTROLLO GIRI E LOG
             
             dist = C.S.d.get("distFromStart", 0.0)
             
@@ -128,6 +129,7 @@ def run_manual_session(host: str = "localhost", port: int = 3001, track: str = "
             _prev_dist = dist
 
             step += 1
+            # Salva sul file stato del veicolo e dati inviati
             logger.log_step(C.S.d, R)
 
     except KeyboardInterrupt:

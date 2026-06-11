@@ -1,6 +1,6 @@
 import os
 import sys
-import getopt
+import getopt # Gestisce gli argomenti passati da linea di comando
 
 # Evita la creazione di file compilati __pycache__
 sys.dont_write_bytecode = True
@@ -11,7 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from Controller.manual_session import run_manual_session
 
 
-#  ----------- ENTRY POINT (OPZIONI CLI) -----------
+# ENTRY POINT (OPZIONI CLI) 
 
 _HELP = """
 Uso: python controller.py [opzioni]
