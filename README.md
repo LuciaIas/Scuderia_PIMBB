@@ -82,17 +82,17 @@ Ottenere prestazioni elevate e guida stabile su circuiti complessi come *Corkscr
 
 Il modello segue una pipeline in **5 fasi principali**:
 
-**1. Raccolta dati:** acquisizione dei dati dal simulatore TORCS tramite i sensori del veicolo.\
-**2. Preprocessing:** normalizzazione e riduzione dimensionale (Scaler + PCA).\
-**3. Training:** addestramento della rete neurale con PyTorch (Behavioural Cloning).\
-**4. Export:** salvataggio del modello in formato JIT con preprocessing integrato.\
-**5. Inferenza:** utilizzo in tempo reale per generare i comandi di guida nel simulatore.
+**1. Raccolta Dati:** Acquisizione dei dati dal simulatore TORCS tramite i sensori del veicolo.\
+**2. Preprocessing:** Normalizzazione e riduzione dimensionale (Scaler + PCA).\
+**3. Training:** Addestramento della rete neurale con PyTorch (Behavioural Cloning).\
+**4. Export:** Salvataggio del modello in formato JIT con preprocessing integrato.\
+**5. Inferenza:** Utilizzo in tempo reale per generare i comandi di guida nel simulatore.
 
 <br>
 
 ## **Modello Neurale**
 
-**Architettura:** Rete Neurale Feed-Forward (TorcsDriverNet) per la regressione delle azioni di guida.
+**Architettura:** Rete Neurale Feed-Forward *(TorcsDriverNet)* per la regressione delle azioni di guida.
 
 
 
