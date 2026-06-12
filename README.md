@@ -108,7 +108,7 @@ Il modello segue una pipeline in **5 fasi principali**:
 <br>
 
 ## **Ringraziamenti**
+Ringraziamo **IBM** per l’opportunità offerta attraverso la *IBM AI Racing League* e per il supporto e gli strumenti messi a disposizione durante lo sviluppo del progetto.
 
-Un ringraziamento a **IBM Granite** per il supporto nello sviluppo e nell’ottimizzazione del progetto.
 
 
