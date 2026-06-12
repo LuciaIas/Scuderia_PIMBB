@@ -44,7 +44,7 @@ Ottenere prestazioni elevate e guida stabile su circuiti complessi come *Corkscr
 ## **Struttura del Repository**
 
 ```bash
-/scuderia_pimbb_project
+/scuderia_PIMBB
 │
 ├── /bot_tastiera        # Input Manuale / Simulato
 ├── /controller          # Acquisizione Dati
