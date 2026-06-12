@@ -68,7 +68,7 @@ Ottenere prestazioni elevate e guida stabile su circuiti complessi come *Corkscr
    `sklearn` – StandardScaler e PCA\
    `numpy` – Calcolo Numerico\
    `pandas` – Gestione Dati\
-   `json / jsonl` – Formato Dati\
+   `json` – Formato Dati\
    `socket` – Comunicazione UDP\
    `pygame / ctypes` – Input Joystick e Tastiera\
    `glob` – Persistenza Dati\
